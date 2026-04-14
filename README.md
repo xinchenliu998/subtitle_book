@@ -29,7 +29,7 @@ uv run subtitle-book --dir ./assets/srt --title "小逻辑（句读版）" --aut
 
 ## 输入方式
 
-支持四种输入方式，可混合使用：
+支持五种输入方式：
 
 ```bash
 # 目录扫描（非递归）
@@ -41,9 +41,20 @@ uv run subtitle-book --files ep1/01.srt --files ep1/02.srt
 # glob 模式（支持递归）
 uv run subtitle-book --pattern "**/*.srt"
 
+# JSON 文件（保持指定顺序）
+uv run subtitle-book --json chapters.json
+
 # 混合使用
 uv run subtitle-book --dir ./ep1 --files ep2/extra.srt --pattern "bonus/**/*.srt"
 ```
+
+### JSON 格式
+
+```json
+["ep1/01.srt", "ep1/02.srt", "ep2/intro.srt"]
+```
+
+路径相对于 JSON 文件所在目录。**使用 JSON 输入时，章节顺序由文件列表决定，不会自动按集号排序。**
 
 ## 配置文件
 

@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -54,8 +55,32 @@ def collect_inputs(
     return sorted(results)
 
 
-def collect_chapters(srt_files: list[Path], pattern: str) -> list[Chapter]:
-    """解析 SRT 文件列表为 Chapter 列表，按集号排序。"""
+def collect_inputs_from_json(json_path: Path) -> list[Path]:
+    """
+    从 JSON 文件读取字幕文件路径列表。
+    JSON 格式: ["path/to/01.srt", "path/to/02.srt", ...]
+    路径相对于 JSON 文件所在目录。
+    返回保持 JSON 中的顺序。
+    """
+    with open(json_path, encoding="utf-8") as f:
+        paths: list[str] = json.load(f)
+
+    base_dir = json_path.parent
+    srt_files = []
+    for p in paths:
+        path = base_dir / p
+        if path.suffix.lower() == ".srt" and path.exists():
+            srt_files.append(path)
+        else:
+            print(f"[WARN] 跳过不存在或非 SRT 文件: {path}")
+    return srt_files
+
+
+def collect_chapters(srt_files: list[Path], pattern: str, sort: bool = True) -> list[Chapter]:
+    """
+    解析 SRT 文件列表为 Chapter 列表。
+    sort=True 时按集号排序（number=0 序言最前）；sort=False 时保持文件顺序。
+    """
     chapters = []
     for fp in srt_files:
         num, title = extract_chapter_info(fp.name, pattern)
@@ -67,7 +92,8 @@ def collect_chapters(srt_files: list[Path], pattern: str) -> list[Chapter]:
                 filename=fp.name,
                 paragraphs=paragraphs,
             ))
-    chapters.sort(key=lambda c: (c.number if c.number != 0 else -1, c.filename))
+    if sort:
+        chapters.sort(key=lambda c: (c.number if c.number != 0 else -1, c.filename))
     return chapters
 
 
@@ -81,6 +107,8 @@ def main() -> None:
                         help="直接指定字幕文件（可多次指定）")
     parser.add_argument("--pattern", "-p", type=str,
                         help="glob 模式，如 '**/*.srt'（支持递归）")
+    parser.add_argument("--json", "-j", type=Path,
+                        help="JSON 文件路径，其中包含字幕文件路径列表（保持顺序）")
     parser.add_argument("--output-dir", "-o", type=Path, default=Path("build"),
                         help="输出目录（默认: build/）")
     parser.add_argument("--config", "-c", type=Path,
@@ -100,12 +128,15 @@ def main() -> None:
     filename_pattern = config["filename_pattern"]["pattern"]
 
     # 收集 SRT 文件
-    dirs = args.dir if args.dir else None
-    files = args.files if args.files else None
-    pattern = args.pattern
-
-    # 兼容旧参数：如果既没有 dirs/files/pattern，也没有显式 srt_dir，用当前目录
-    srt_files = collect_inputs(dirs=dirs, files=files, pattern=pattern, srt_dir=Path("."))
+    if args.json:
+        srt_files = collect_inputs_from_json(args.json)
+        sort_chapters = False
+    else:
+        dirs = args.dir if args.dir else None
+        files = args.files if args.files else None
+        pattern = args.pattern
+        srt_files = collect_inputs(dirs=dirs, files=files, pattern=pattern, srt_dir=Path("."))
+        sort_chapters = True
 
     if not srt_files:
         print("[ERROR] 未找到任何字幕文件")
@@ -114,7 +145,7 @@ def main() -> None:
     print(f"[INFO] 找到 {len(srt_files)} 个字幕文件")
 
     # 解析章节
-    chapters = collect_chapters(srt_files, filename_pattern)
+    chapters = collect_chapters(srt_files, filename_pattern, sort=sort_chapters)
     print(f"[INFO] 共 {len(chapters)} 章")
 
     # 预览前几章
