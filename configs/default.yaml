@@ -1,2 +1,10 @@
-# 默认配置
-# 各字段含义见 README.md 或 docs/ 目录下的配置说明文档
+book:
+  title: "字幕书"
+  author: "作者"
+
+filename_pattern:
+  # capture group 1 = 集号(数字)，capture group 2 = 标题
+  # 集号为 0 或空表示序言/特殊章节，排在最前
+  pattern: "^(?:第?(\\d+)[集话章篇]\\s*)?(.+)$"
+
+encoding: "utf-8"
