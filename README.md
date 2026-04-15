@@ -126,7 +126,7 @@ uv run subtitle-book \
 
 ## 配置文件
 
-编辑 `configs/default.yaml` 自定义文件名解析规则：
+编辑 `configs/default.yaml` 自定义文件名解析规则和 PDF 生成选项：
 
 ```yaml
 book:
@@ -139,6 +139,11 @@ filename_pattern:
   pattern: "^(?:第?(\\d+)[集话章篇]\\s*)?(.+)$"
 
 encoding: "utf-8"
+
+pdf:
+  # Pandoc PDF 字体（留空使用系统默认）
+  # Windows 常用: STSong, SimSun, SimHei, Microsoft YaHei
+  font: "STSong"
 ```
 
 ### 正则 pattern 说明
@@ -178,9 +183,11 @@ encoding: "utf-8"
 | 方式 | 优点 | 缺点 |
 |------|------|------|
 | WeasyPrint | 功能完整，中文支持好 | 需要系统 GTK3/WebKit 依赖 |
-| Pandoc + xelatex | 轻量，输出质量高 | 需要用户自行安装 LaTeX 环境 |
+| Pandoc + xelatex | 轻量，输出质量高 | 需要 TeX Live 环境 |
 
 默认 WeasyPrint 优先，失败则回退 Pandoc。
+
+**Pandoc 中文支持**：通过 `xeCJK` 包自动处理中文断行，字体可在配置文件中指定。
 
 安装 WeasyPrint：
 
@@ -188,7 +195,7 @@ encoding: "utf-8"
 uv pip install weasyprint
 ```
 
-安装 Pandoc（需配合 xelatex）：
+安装 Pandoc（需配合 TeX Live）：
 
 ```bash
 # Windows: https://pandoc.org/installing.html
@@ -231,15 +238,11 @@ subtitle_book/
 
 ## 故障排除
 
-### ModuleNotFoundError: No module named 'src'
-
-使用 `uv run python -m src.subtitle_book` 而非直接运行 `python src/subtitle_book.py`。
-
 ### PDF 生成失败
 
 1. 确认已安装 WeasyPrint 或 Pandoc
-2. WeasyPrint 需要系统 GTK3/WebKit 依赖（Windows 下建议使用 Pandoc）
-3. Pandoc 生成 PDF 需要 xelatex 环境
+2. WeasyPrint 需要系统 GTK3/WebKit 依赖
+3. Pandoc 生成 PDF 需要 TeX Live 环境，并确保配置文件中指定了可用的中文字体
 
 ### JSON 文件路径错误
 

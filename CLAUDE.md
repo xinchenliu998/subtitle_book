@@ -6,7 +6,7 @@
 - **功能**：将 SRT 字幕文件合并为带目录的 EPUB/PDF 电子书
 - **语言**：Python 3.10+
 - **依赖管理**：uv + hatchling
-- **入口脚本**：`uv run python -m src.subtitle_book`
+- **入口脚本**：`uv run subtitle-book`
 
 ## 运行方式
 
@@ -41,7 +41,7 @@ subtitle-book --dir ./srt
 | ebooklib | EPUB 生成 |
 | pyyaml | 配置文件加载 |
 | weasyprint | PDF 生成（可选） |
-| pandoc | PDF 生成备选（可选） |
+| pandoc | PDF 生成备选（可选，需配合 TeX Live） |
 
 ## 测试
 
@@ -96,9 +96,11 @@ generate_epub(book: Book, output_path: Path) -> None
 PDF 生成器。关键接口：
 
 ```python
-generate_pdf(epub_path: Path, pdf_path: Path) -> PDFResult
+generate_pdf(epub_path: Path, pdf_path: Path, pdf_font: str | None = None) -> PDFResult
+# pdf_font: Pandoc PDF 使用的字体，为空则使用默认配置
 # PDFResult: SUCCESS / EPUB_MISSING / BOTH_FAILED
 # WeasyPrint 优先，失败则回退 Pandoc
+# Pandoc 使用 xeCJK 处理中文，需要配置文件指定中文字体
 ```
 
 ## 添加新功能
