@@ -78,13 +78,10 @@ def generate_epub(book: Book, output_path: Path) -> None:
     )
     epub_book.add_item(nav_css)
 
-    # ── 排序章节: number 0 (序言) 最前，其余按 number 升序 ──
-    sorted_chapters = sorted(book.chapters, key=lambda c: (c.number if c.number != 0 else -1, c.filename))
-
-    # ── 生成章节 ──
+    # ── 生成章节（顺序由调用方控制）──
     epub_chapters: list[EpubHtml] = []
 
-    for idx, ch in enumerate(sorted_chapters):
+    for idx, ch in enumerate(book.chapters):
         epub_ch = epub.EpubHtml(
             title=ch.title,
             file_name=f"chapter_{idx:03d}.xhtml",

@@ -8,3 +8,7 @@ filename_pattern:
   pattern: "^(?:第?(\\d+)[集话章篇]\\s*)?(.+)$"
 
 encoding: "utf-8"
+
+pdf:
+  # Pandoc PDF 字体，留空使用系统默认
+  font: "STSong"

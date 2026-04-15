@@ -172,7 +172,8 @@ def main() -> None:
     # 生成 PDF
     if args.pdf:
         print(f"[INFO] 生成 PDF: {pdf_path}")
-        result = generate_pdf(epub_path, pdf_path)
+        pdf_font = config.get("pdf", {}).get("font") or None
+        result = generate_pdf(epub_path, pdf_path, pdf_font)
         if result == PDFResult.BOTH_FAILED:
             print("[WARN] PDF 生成失败（EPUB 已成功生成）")
 

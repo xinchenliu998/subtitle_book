@@ -19,9 +19,10 @@ class PDFResult(Enum):
     BOTH_FAILED = "both_failed"  # EPUB 存在但 PDF 生成失败
 
 
-def generate_pdf(epub_path: Path, pdf_path: Path) -> PDFResult:
+def generate_pdf(epub_path: Path, pdf_path: Path, pdf_font: str | None = None) -> PDFResult:
     """
     PDF 生成：WeasyPrint 优先，Pandoc 备选。
+    pdf_font: Pandoc PDF 使用的字体（为空则不指定，使用系统默认）。
     返回结果状态，区分"EPUB 存在但 PDF 失败"和"EPUB 不存在"。
     """
     if not epub_path.exists():
@@ -29,7 +30,7 @@ def generate_pdf(epub_path: Path, pdf_path: Path) -> PDFResult:
 
     if _try_weasyprint(epub_path, pdf_path):
         return PDFResult.SUCCESS
-    if _try_pandoc(epub_path, pdf_path):
+    if _try_pandoc(epub_path, pdf_path, pdf_font):
         return PDFResult.SUCCESS
     return PDFResult.BOTH_FAILED
 
@@ -38,7 +39,7 @@ def _try_weasyprint(epub_path: Path, pdf_path: Path) -> bool:
     """尝试使用 WeasyPrint 生成 PDF。"""
     try:
         import weasyprint
-    except ImportError:
+    except (ImportError, OSError):
         return False
 
     print("[INFO] 使用 WeasyPrint 生成 PDF (较慢，请耐心) ...")
@@ -52,7 +53,7 @@ def _try_weasyprint(epub_path: Path, pdf_path: Path) -> bool:
         return False
 
 
-def _try_pandoc(epub_path: Path, pdf_path: Path) -> bool:
+def _try_pandoc(epub_path: Path, pdf_path: Path, pdf_font: str | None = None) -> bool:
     """
     尝试使用 Pandoc 从 EPUB 生成 PDF。
     通过 EPUB -> HTML -> Markdown -> PDF 的方式转换。
@@ -64,14 +65,23 @@ def _try_pandoc(epub_path: Path, pdf_path: Path) -> bool:
 
     print("[INFO] 使用 Pandoc 生成 PDF ...")
     try:
+        cmd = [
+            pandoc, str(epub_path), "-o", str(pdf_path),
+            "--pdf-engine=xelatex",
+            "--standalone",
+        ]
+        if pdf_font:
+            # xeCJK header for Chinese font support
+            cjk_header = f"\\usepackage{{xeCJK}}\\setCJKmainfont{{{pdf_font}}}"
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.tex', delete=False, encoding='utf-8') as f:
+                f.write(cjk_header)
+                header_file = f.name
+            cmd += ["--include-in-header", header_file]
+            cmd += ["-V", f"mainfont={pdf_font}"]
+        cmd += ["--quiet"]
         result = subprocess.run(
-            [pandoc, str(epub_path), "-o", str(pdf_path),
-             "--pdf-engine=xelatex",
-             "-V", "mainfont=Noto Serif CJK SC",
-             "-V", "geometry:margin=2.5cm",
-             "-V", "fontsize=11pt",
-             "-V", "linestretch=1.8",
-             "--quiet"],
+            cmd,
             capture_output=True, text=True, timeout=300,
         )
         if result.returncode == 0:
